@@ -16,24 +16,26 @@ type UserCreator interface {
 	Create(ctx context.Context, u User) (int64, error)
 }
 
+//go:generate go run github.com/vektra/mockery/v2@v2.38.0 --name=UserProvider
 type UserProvider interface {
 	User(ctx context.Context, email string) (*User, error)
 }
 
+//go:generate go run github.com/vektra/mockery/v2@v2.38.0 --name=UserNotifier
 type UserNotifier interface {
 	NotifyUserCreated(ctx context.Context, u User) error
 }
 
 type Service struct {
-	userCreator  UserCreator
-	userProvider UserProvider
-	userNotifier UserNotifier
+	UserCreator  UserCreator
+	UserProvider UserProvider
+	UserNotifier UserNotifier
 }
 
 func (s *Service) CreateUser(ctx context.Context, u User) (int64, error) {
 
 	// first check if user exists
-	foundUser, err := s.userProvider.User(ctx, u.Email)
+	foundUser, err := s.UserProvider.User(ctx, u.Email)
 	if err != nil {
 		return 0, fmt.Errorf("can't get user %v: %w", u, err)
 	}
@@ -43,10 +45,13 @@ func (s *Service) CreateUser(ctx context.Context, u User) (int64, error) {
 	}
 
 	// create user
-	uid, err := s.userCreator.Create(ctx, u)
+	uid, err := s.UserCreator.Create(ctx, u)
+	if err != nil {
+		return 0, fmt.Errorf("can't create user %v: %w", u, err)
+	}
 
 	// notify
-	if err := s.userNotifier.NotifyUserCreated(ctx, u); err != nil {
+	if err := s.UserNotifier.NotifyUserCreated(ctx, u); err != nil {
 		return 0, fmt.Errorf("can't notify user created  %v: %w", u, err)
 	}
 
