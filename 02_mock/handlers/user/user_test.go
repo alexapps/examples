@@ -1,12 +1,11 @@
-package user_test
+package user
 
 import (
 	"context"
 	"testing"
 
-	"github.com/alexapps/examples/02_mock/handlers/user"
 	"github.com/alexapps/examples/02_mock/handlers/user/mocks"
-	"github.com/stretchr/testify/mock"
+	user "github.com/alexapps/examples/02_mock/storage/user"
 )
 
 func TestService_CreateUser(t *testing.T) {
@@ -23,7 +22,7 @@ func TestService_CreateUser(t *testing.T) {
 		{
 			name: "base test",
 			args: args{
-				ctx: context.Background(),
+				ctx: context.TODO(),
 				u: user.User{
 					Email: "aaa@mail.eu",
 					Name:  "Carlos",
@@ -39,15 +38,26 @@ func TestService_CreateUser(t *testing.T) {
 			userNotifier := mocks.NewUserNotifier(t)
 
 			// userProvider.On("User", tt.args.ctx, tt.args.u.Email).Return(nil, nil)
-			// mock.Anything - any values
-			userProvider.On("User", mock.Anything, tt.args.u.Email).Return(nil, nil)
-			userCreator.On("Create", tt.args.ctx, tt.args.u).Return(0, nil)
-			userNotifier.On("NotifyUserCreated", tt.args.ctx, tt.args.u).Return(nil)
+			// mock.Anything - any values as ctx value for instance
+			userProvider.
+				On("User", tt.args.ctx, tt.args.u.Email).
+				Once().
+				Return(nil, nil)
 
-			s := &user.Service{
-				UserCreator:  userCreator,
-				UserProvider: userProvider,
-				UserNotifier: userNotifier,
+			userCreator.
+				On("Create", tt.args.ctx, tt.args.u).
+				Once().
+				Return(0, nil)
+
+			userNotifier.
+				On("NotifyUserCreated", tt.args.ctx, tt.args.u).
+				Once().
+				Return(nil)
+
+			s := Service{
+				userCreator:  userCreator,
+				userProvider: userProvider,
+				userNotifier: userNotifier,
 			}
 			_, err := s.CreateUser(tt.args.ctx, tt.args.u)
 			if (err != nil) != tt.wantErr {
